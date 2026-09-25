@@ -1,12 +1,32 @@
 # Build Guide
 
-Step-by-step Vivado flow to get this design running on a KR260.
+Step-by-step Vivado flow to get this design running on a KR260. Each step
+below has a placeholder for a screenshot — drop your image into
+`docs/images/` under the filename shown and it'll render in place.
 
 ## 1. Create the project
+
+![Step 1: Project name and location](images/build-guide-01-create-project.png)
+*File → New Project → project name and location*
+
+![Step 1: Project type](images/build-guide-01b-project-type.png)
+*New Project wizard → Project Type → RTL Project*
+
+![Step 1: Wizard's Add Sources page](images/build-guide-01c-wizard-add-sources.png)
+*New Project wizard → Add Sources — left empty here and skipped with
+**Next**; the actual `rtl/` and `board/` files get added afterward, in
+[Step 2](#2-add-design-sources).*
 
 Target part: **`xck26-sfvc784-2LV-c`** (the Kria K26 SOM used on the KR260).
 
 ## 2. Add design sources
+
+![Step 2: Add Source Files dialog](images/build-guide-02-add-sources.png)
+*Add Source Files → selecting everything in `rtl/`*
+
+![Step 2: Confirmed source list](images/build-guide-02b-sources-list.png)
+*New Project wizard → Add Sources, with the selected files and their
+Location confirmed*
 
 Add everything under `rtl/` plus `board/top_kr260_riscv.sv` as design
 sources.
@@ -20,6 +40,14 @@ sources.
 
 ## 3. Add constraints
 
+![Step 3: Add constraints](images/build-guide-03-add-constraints.png)
+*New Project wizard → Add Constraint Files → `kr260_led_counter.xdc` selected*
+
+![Step 3: Default Part — Boards](images/build-guide-03b-default-part.png)
+*New Project wizard → Default Part → **Boards** tab, searched "kr260" →
+**Kria KR260 Robotics Starter Kit SOM**. Picking the board this way selects
+the underlying part (`xck26-sfvc784-2LV-c`) for you.*
+
 Add `constraints/kr260_led_counter.xdc`. It constrains:
 - `clk` → `PACKAGE_PIN C3`, `LVCMOS18`, 25 MHz (`create_clock -period 40.000`)
 - `led_out[0]`/`led_out[1]` → `PACKAGE_PIN F8` / `E8`, `LVCMOS18`
@@ -31,6 +59,9 @@ Add `constraints/kr260_led_counter.xdc`. It constrains:
 > generation. See [Troubleshooting](Troubleshooting.md).
 
 ## 4. Create the reset/run VIO
+
+![Step 4: Customize the VIO IP](images/build-guide-04-create-vio.png)
+*Screenshot placeholder — IP Catalog: VIO customization (0 in / 1 out)*
 
 `top_kr260_riscv.sv` instantiates a Vivado IP named `vio_0`, customized
 with:
@@ -47,6 +78,12 @@ synthesis.
 
 ## 5. Synthesize and set up debug
 
+![Step 5a: Run Synthesis](images/build-guide-05a-synthesis.png)
+*Screenshot placeholder — Flow Navigator: Run Synthesis*
+
+![Step 5b: Set Up Debug wizard](images/build-guide-05b-set-up-debug.png)
+*Screenshot placeholder — Set Up Debug wizard, signal selection*
+
 1. Run **Synthesis**.
 2. **Tools → Set Up Debug**, and select the signals you want visible on the
    ILA — at minimum the `(* mark_debug = "true" *)` signals already in
@@ -58,6 +95,9 @@ synthesis.
 
 ## 6. Program the device
 
+![Step 6: Program device](images/build-guide-06-program-device.png)
+*Screenshot placeholder — Hardware Manager: Program Device*
+
 Open the Hardware Manager, connect to the board's JTAG (`xck26_0`), and
 program the generated `.bit` file.
 
@@ -67,6 +107,9 @@ program the generated `.bit` file.
 > See [Troubleshooting](Troubleshooting.md).
 
 ## 7. Run it
+
+![Step 7: ILA/VIO dashboards running](images/build-guide-07-run-it.png)
+*Screenshot placeholder — ILA waveform + VIO dashboard, core running*
 
 Open the ILA dashboard and the VIO's dashboard. Drive the VIO's
 `probe_out0` to `1` to release reset and let the core start executing from
