@@ -74,10 +74,98 @@ Add `constraints/kr260_led_counter.xdc`. It constrains:
 > later as `[DRC NSTD-1]`/`[DRC UCIO-1]` unconstrained-pin errors at bitstream
 > generation. See [Troubleshooting](Troubleshooting.md).
 
-## 4. Create the reset/run VIO
+## 4. Run a behavioral simulation
 
-![Step 4: Customize the VIO IP](images/build-guide-04-create-vio.png)
-*Screenshot placeholder — IP Catalog: VIO customization (0 in / 1 out)*
+Before touching hardware, it's worth confirming the design behaves
+correctly in simulation — a bad program or an RTL bug is far faster to spot
+on a waveform than on the ILA after a full synthesis/implementation cycle.
+
+### Add the memory file
+
+![Step 4: Add the memory file for simulation](images/build-guide-sim-01-add-memory-file.png)
+*Add Source Files → `git_riscv/mem/` → both `machine_code.mem` and
+`machine_code_with_halt.mem` selected*
+
+`instruction_memory.sv` loads its ROM with
+`$readmemh("machine_code.mem", mem)`, and the simulator needs to find that
+file by that relative name from wherever it runs — the same requirement
+covered in [Loading Programs](Loading-Programs.md) for the hardware build.
+Add `mem/machine_code.mem` under **Simulation Sources** (Sources panel →
+`+` → **Add or create simulation sources**) so the behavioral simulator can
+locate it, rather than relying on it being copied in as a side effect.
+
+### Add the testbench
+
+![Step 4: Add the testbench](images/build-guide-sim-01b-add-testbench.png)
+*Add Source Files → `git_riscv/sim/` → `test_bench.sv` selected*
+
+The memory file alone isn't enough to simulate anything — `top_kr260_riscv`
+has no self-contained stimulus, since its clock and `reset_n` normally come
+from the board's oscillator and the `vio_0` IP, neither of which exist in
+simulation. `sim/test_bench.sv` fills that gap:
+
+- instantiates `top` **directly** (not `top_kr260_riscv` — it bypasses the
+  board wrapper and its VIO entirely)
+- generates its own free-running `clk` (10 time-unit period) and its own
+  `reset_n` pulse (asserted low for the first 10 time units)
+- automatically stops the simulation with `$finish` after 200 clock cycles
+
+Add it via Sources panel → `+` → **Add or create simulation sources** →
+`git_riscv/sim/test_bench.sv`.
+
+> **Set the simulation top.** With `test_bench` now alongside
+> `top_kr260_riscv` in Simulation Sources, Vivado needs to simulate
+> `test_bench` — not the board wrapper. Right-click `test_bench` in the
+> Sources hierarchy (under `sim_1`) and choose **Set as Top**.
+
+![Step 4: test_bench set as the simulation top](images/build-guide-sim-01c-set-testbench-top.png)
+*Sources panel, Hierarchy view, mid-simulation — under **Simulation
+Sources → sim_1**, `test_bench` is now the top entry with `dut : top
+(top.sv)` correctly nested underneath it, confirming the testbench (not
+`top_kr260_riscv`) is what's being simulated.*
+
+### (Optional) Exclude `top_kr260_riscv` from the Simulation Sources view
+
+`top_kr260_riscv` still shows up under **Simulation Sources → sim_1**
+alongside `test_bench` — Vivado automatically shares every Design Source
+into every fileset, including simulation, whether or not it's actually
+instantiated there. Since `test_bench` instantiates `top` directly and
+never touches `top_kr260_riscv`, this is harmless clutter rather than a
+correctness problem, but it can be tidied up:
+
+![Step 4: Restrict USED_IN to synthesis/implementation only](images/build-guide-sim-01d-exclude-board-wrapper.png)
+*Select `top_kr260_riscv.sv` → **Source File Properties → Properties** tab
+→ **USED_IN** → the **Make Selection** dialog. Move **simulation** out of
+the "Selected values" list, leaving only **synthesis** and
+**implementation**.*
+
+![Step 4: Confirm the change](images/build-guide-sim-01e-exclude-verified.png)
+*Click **OK** to apply, then re-open the Sources panel (shown here mid-run,
+title bar reading **SIMULATION - Behavioral Simulation - Functional**).
+Under **Simulation Sources → sim_1**, `top_kr260_riscv` is gone —
+`test_bench` (top) with `dut : top (top.sv)` nested underneath, `vio_0
+(vio_0.xci)`, and the memory file are all that's left. `top_kr260_riscv.sv`
+itself stays fully active for Steps 6–7 (Synthesis/Implementation) under
+**Design Sources**; only its presence in the simulation fileset was
+removed.*
+
+### Run the simulation
+
+![Step 4: Run Behavioral Simulation](images/build-guide-sim-02-run-simulation.png)
+*Screenshot placeholder — Flow Navigator → SIMULATION → Run Simulation →
+Run Behavioral Simulation*
+
+### Check the waveform
+
+![Step 4: Behavioral simulation waveform](images/build-guide-sim-03-waveform.png)
+*Screenshot placeholder — simulator waveform, confirming `pc`/`instruction`
+advance and the register file updates as expected*
+
+See [Loading Programs](Loading-Programs.md) for what the shipped test
+program should do, and what to look for on the waveform to confirm it ran
+correctly, before moving on to the actual FPGA build below.
+
+## 5. Create the reset/run VIO
 
 `top_kr260_riscv.sv` instantiates a Vivado IP named `vio_0`, customized
 with:
@@ -89,15 +177,35 @@ reset (halted at `RESET_PC`) the moment the bitstream is programmed, until
 you explicitly drive the probe to `1` from the Hardware Manager. This gives
 you a free run/halt control with no extra logic.
 
-Generate this IP (name it `vio_0` to match the instantiation) before running
-synthesis.
+![Step 5: Find VIO in the IP Catalog](images/build-guide-04a-ip-catalog-vio.png)
+*Flow Navigator → **IP Catalog** → search "vio" → **VIO (Virtual
+Input/Output)** under Debug & Verification → Debug*
 
-## 5. Synthesize and set up debug
+Double-click it to open **Customize IP**.
 
-![Step 5a: Run Synthesis](images/build-guide-05a-synthesis.png)
+![Step 5: Customize IP — set Input Probe Count to 0](images/build-guide-04b-customize-vio.png)
+*Customize IP → General Options. Component Name **must** be `vio_0` (to
+match the instantiation in `top_kr260_riscv.sv`). Leave **Output Probe
+Count** at `1`, but change **Input Probe Count from its default down to
+`0`** — this build only drives `reset_n` out of the VIO, it doesn't feed
+anything back in. Click OK once both are set.*
+
+![Step 5: Generate Output Products](images/build-guide-04c-generate-output-products.png)
+*Generate Output Products dialog → **Generate**. This kicks off an
+out-of-context synthesis run for just the VIO core.*
+
+![Step 5: Wait for VIO synthesis to complete](images/build-guide-04d-vio-synth-complete.png)
+*Design Runs tab → **wait for `vio_0_synth_1` to show "synth_design
+Complete!"** before moving on. This runs in the background — don't start
+the main Synthesis run (Step 6) until this finishes, or Vivado won't have a
+usable `vio_0` to elaborate against.*
+
+## 6. Synthesize and set up debug
+
+![Step 6a: Run Synthesis](images/build-guide-05a-synthesis.png)
 *Screenshot placeholder — Flow Navigator: Run Synthesis*
 
-![Step 5b: Set Up Debug wizard](images/build-guide-05b-set-up-debug.png)
+![Step 6b: Set Up Debug wizard](images/build-guide-05b-set-up-debug.png)
 *Screenshot placeholder — Set Up Debug wizard, signal selection*
 
 1. Run **Synthesis**.
@@ -109,9 +217,9 @@ synthesis.
    tells you and how to add more.
 3. Run **Implementation**, then **Generate Bitstream**.
 
-## 6. Program the device
+## 7. Program the device
 
-![Step 6: Program device](images/build-guide-06-program-device.png)
+![Step 7: Program device](images/build-guide-06-program-device.png)
 *Screenshot placeholder — Hardware Manager: Program Device*
 
 Open the Hardware Manager, connect to the board's JTAG (`xck26_0`), and
@@ -122,9 +230,9 @@ program the generated `.bit` file.
 > JTAG yet — this is a board/boot-sequencing issue, not a bitstream problem.
 > See [Troubleshooting](Troubleshooting.md).
 
-## 7. Run it
+## 8. Run it
 
-![Step 7: ILA/VIO dashboards running](images/build-guide-07-run-it.png)
+![Step 8: ILA/VIO dashboards running](images/build-guide-07-run-it.png)
 *Screenshot placeholder — ILA waveform + VIO dashboard, core running*
 
 Open the ILA dashboard and the VIO's dashboard. Drive the VIO's
