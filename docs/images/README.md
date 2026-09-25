@@ -7,8 +7,11 @@ the wiki pages. Naming convention: `<page-slug>-<NN>-<short-name>.png`, e.g.
 build-guide-01-create-project.png       (New Project wizard: project name/location)
 build-guide-01b-project-type.png        (New Project wizard: project type)
 build-guide-01c-wizard-add-sources.png  (New Project wizard: Add Sources page, left empty)
-build-guide-02-add-sources.png          (Add Source Files dialog: selecting files)
+build-guide-02-add-sources.png          (Add Source Files dialog: selecting files, incl. top.sv)
 build-guide-02b-sources-list.png        (confirmed source list with locations)
+build-guide-02c-add-sources-wizard.png  (post-creation Add Sources dialog)
+build-guide-02d-add-board-wrapper.png   (adding top_kr260_riscv.sv from board/)
+build-guide-02e-sources-verified.png    (final Sources panel, hierarchy confirmed)
 build-guide-03-add-constraints.png      (Add Constraint Files dialog)
 build-guide-03b-default-part.png        (Default Part wizard page: Boards tab, KR260)
 build-guide-04-create-vio.png

@@ -28,6 +28,22 @@ Target part: **`xck26-sfvc784-2LV-c`** (the Kria K26 SOM used on the KR260).
 *New Project wizard → Add Sources, with the selected files and their
 Location confirmed*
 
+`board/top_kr260_riscv.sv` lives in a different folder than the `rtl/`
+files, so it doesn't get picked up by that same file browse — add it as a
+second pass, from the Project Manager after the project exists:
+
+![Step 2: Post-creation Add Sources dialog](images/build-guide-02c-add-sources-wizard.png)
+*Sources panel → `+` → **Add or create design sources***
+
+![Step 2: Adding the board wrapper](images/build-guide-02d-add-board-wrapper.png)
+*`top_kr260_riscv.sv` added from `git_riscv/board/`*
+
+![Step 2: Verified source hierarchy](images/build-guide-02e-sources-verified.png)
+*Sources panel afterward — `top_kr260_riscv` at the top of Design Sources
+with its instantiated modules nested underneath (confirms `top.sv` was
+found and elaborated correctly), plus the constraint file and a matching
+entry under Simulation Sources.*
+
 Add everything under `rtl/` plus `board/top_kr260_riscv.sv` as design
 sources.
 
