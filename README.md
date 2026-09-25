@@ -5,6 +5,10 @@ AMD/Xilinx's KR260 Robotics Starter Kit — from RTL, to a live JTAG/ILA/VIO
 debug setup, to a memory-mapped GPIO peripheral driving the board's onboard
 LEDs.
 
+**📖 [Read the full wiki](docs/Home.md)** for a deeper walkthrough —
+architecture, memory map, the Vivado build flow, the debug workflow, and a
+troubleshooting log of real errors hit during bring-up.
+
 ---
 
 ## What's in this repo
